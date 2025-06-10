@@ -1,11 +1,12 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useContext, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { ProductContext } from '../context/ProductContext';
-import { ImagePlus } from 'lucide-react';
 
-const AddProduct = () => {
+const EditProduct = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { addProduct } = useContext(ProductContext);
+  const { products, updateProduct } = useContext(ProductContext);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -14,6 +15,19 @@ const AddProduct = () => {
     price: '',
     imageUrl: ''
   });
+
+  useEffect(() => {
+    const product = products.find(p => p.id === id);
+    if (product) {
+      setFormData({
+        name: product.name,
+        category: product.category,
+        description: product.description || '',
+        price: product.price || '',
+        imageUrl: product.imageUrl || ''
+      });
+    }
+  }, [id, products]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,10 +40,10 @@ const AddProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await addProduct(formData);
+      await updateProduct(id, formData);
       navigate('/');
     } catch (error) {
-      console.error('Error adding product:', error);
+      console.error('Error updating product:', error);
     }
   };
 
@@ -46,7 +60,14 @@ const AddProduct = () => {
 
   return (
     <div className="form-container">
-      <h2>Add New Product</h2>
+      <button 
+        onClick={() => navigate('/')} 
+        className="back-btn"
+        title="Back to products"
+      >
+        <ArrowLeft size={20} color="white" style={{ marginRight: '4px' }} /> Back
+      </button>
+      <h2>Edit Product</h2>
       <form onSubmit={handleSubmit} className="form">
         <input
           type="text"
@@ -94,7 +115,7 @@ const AddProduct = () => {
             onClick={() => document.getElementById('image-upload').click()}
             className='form-img-btn'
           >
-           <ImagePlus size={24} color="white" /> Upload Image
+            📁 Upload Image
           </button>
           <input
             type='file'
@@ -116,7 +137,7 @@ const AddProduct = () => {
         )}
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
-          <button type="submit" className="form-btn">Add Product</button>
+          <button type="submit" className="form-btn">Update Product</button>
           <button type="button" className="form-btn" onClick={() => navigate('/')}>
             Cancel
           </button>
@@ -126,4 +147,4 @@ const AddProduct = () => {
   );
 };
 
-export default AddProduct;
+export default EditProduct;
