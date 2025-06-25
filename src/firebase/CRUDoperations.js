@@ -1,73 +1,79 @@
-import { 
+import {
   collection,
   addDoc,
   getDocs,
+  query,
+  where,
   doc,
   updateDoc,
   deleteDoc,
-  getDoc
+
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
 const COLLECTION_NAME = 'products';
 
-// Create a new product
 export const addProduct = async (productData) => {
   try {
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), productData);
+    if (!productData.name || !productData.price || !productData.userId) {
+      throw new Error('Product must have a name, price, and userId');
+    }
+
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+      name: productData.name,
+      category: productData.category || '',
+      description: productData.description || '',
+      price: productData.price,
+      images: productData.images || [],
+      userId: productData.userId
+    });
+
     return { id: docRef.id, ...productData };
+
   } catch (error) {
+    console.error('Error adding product:', error);
     throw new Error('Error adding product: ' + error.message);
   }
 };
 
-// Get all products
-export const getAllProducts = async () => {
+export const getAllProducts = async (userId) => {
   try {
-    const querySnapshot = await getDocs(collection(db, COLLECTION_NAME));
+    const q = query(collection(db, COLLECTION_NAME), where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
   } catch (error) {
+    console.error('Error fetching products:', error);
     throw new Error('Error fetching products: ' + error.message);
   }
 };
 
-// Get a single product by ID
-export const getProductById = async (productId) => {
-  try {
-    const docRef = doc(db, COLLECTION_NAME, productId);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
-    } else {
-      throw new Error('Product not found');
-    }
-  } catch (error) {
-    throw new Error('Error fetching product: ' + error.message);
-  }
-};
-
-// Update a product
 export const updateProduct = async (productId, updatedData) => {
   try {
     const docRef = doc(db, COLLECTION_NAME, productId);
-    await updateDoc(docRef, updatedData);
+    await updateDoc(docRef, {
+      name: updatedData.name,
+      category: updatedData.category || '',
+      description: updatedData.description || '',
+      price: updatedData.price,
+      images: updatedData.images || []
+    });
     return { id: productId, ...updatedData };
   } catch (error) {
+    console.error('Error updating product:', error);
     throw new Error('Error updating product: ' + error.message);
   }
 };
 
-// Delete a product
 export const deleteProduct = async (productId) => {
   try {
     const docRef = doc(db, COLLECTION_NAME, productId);
     await deleteDoc(docRef);
     return productId;
   } catch (error) {
+    console.error('Error deleting product:', error);
     throw new Error('Error deleting product: ' + error.message);
   }
 };

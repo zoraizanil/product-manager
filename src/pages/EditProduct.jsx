@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ImagePlus } from 'lucide-react';
 import { ProductContext } from '../context/ProductContext';
 
 const EditProduct = () => {
@@ -13,8 +13,10 @@ const EditProduct = () => {
     category: '',
     description: '',
     price: '',
-    imageUrl: ''
+    images: []
   });
+
+  const [previewUrls, setPreviewUrls] = useState([]);
 
   useEffect(() => {
     const product = products.find(p => p.id === id);
@@ -24,8 +26,9 @@ const EditProduct = () => {
         category: product.category,
         description: product.description || '',
         price: product.price || '',
-        imageUrl: product.imageUrl || ''
+        images: product.images || []
       });
+      setPreviewUrls(product.images || []);
     }
   }, [id, products]);
 
@@ -35,6 +38,17 @@ const EditProduct = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...files]
+    }));
+    
+    const newPreviewUrls = files.map(file => URL.createObjectURL(file));
+    setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
   };
 
   const handleSubmit = async (e) => {
@@ -47,21 +61,10 @@ const EditProduct = () => {
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, imageUrl: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   return (
     <div className="form-container">
       <button 
-        onClick={() => navigate('/')} 
+        onClick={() => navigate('/')}
         className="back-btn"
         title="Back to products"
       >
@@ -79,22 +82,22 @@ const EditProduct = () => {
         />
 
         <select 
-          name='category' 
+          name="category"
           value={formData.category}
-          onChange={handleChange} 
-          required 
-          className='form-select'
+          onChange={handleChange}
+          required
+          className="form-select"
         >
-          <option value=''>Select Category</option>
-          <option value='electronics'>Electronics</option>
-          <option value='fashion'>Fashion</option>
-          <option value='home'>Home</option>
-          <option value='books'>Books</option>
-          <option value='toys'>Toys</option>
+          <option value="">Select Category</option>
+          <option value="electronics">Electronics</option>
+          <option value="fashion">Fashion</option>
+          <option value="home">Home</option>
+          <option value="books">Books</option>
+          <option value="toys">Toys</option>
         </select>
 
         <input
-          type='text'
+          type="text"
           name="description"
           placeholder="Description"
           value={formData.description}
@@ -111,30 +114,27 @@ const EditProduct = () => {
 
         <div style={{ textAlign: 'center' }}>
           <button
-            type='button'
+            type="button"
             onClick={() => document.getElementById('image-upload').click()}
-            className='form-img-btn'
+            className="form-img-btn"
           >
-            📁 Upload Image
+            <ImagePlus size={24} color="white" /> Upload Images
           </button>
           <input
-            type='file'
-            id='image-upload'
-            accept='image/*'
+            type="file"
+            id="image-upload"
+            accept="image/*"
+            multiple
             onChange={handleImageChange}
             style={{ display: 'none' }}
           />
         </div>
 
-        {formData.imageUrl && (
-          <div style={{ textAlign: 'center' }}>
-            <img
-              src={formData.imageUrl}
-              alt="Product Preview"
-              className="image-preview"
-            />
-          </div>
-        )}
+        <div className="image-preview-container">
+          {previewUrls.map((url, idx) => (
+            <img key={idx} src={url} alt={`preview-${idx}`} className="image-preview" />
+          ))}
+        </div>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
           <button type="submit" className="form-btn">Update Product</button>

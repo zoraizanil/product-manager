@@ -1,30 +1,40 @@
-import React, { createContext, useState, useEffect } from 'react';
-import { 
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import {
   addProduct as fbAddProduct,
-  getAllProducts,
+  getAllProducts as fbGetAllProducts,
   updateProduct as fbUpdateProduct,
   deleteProduct as fbDeleteProduct
 } from '../firebase/CRUDoperations';
+import { useAuth } from './AuthContext';
 
-export const ProductContext = createContext();  // Named export
+export const ProductContext = createContext();
+
+export const useProduct = () => useContext(ProductContext);
 
 const ProductProvider = ({ children }) => {
+  const { currentUser } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
-  // Fetch products on mount
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (currentUser) {
+      fetchProducts();
+    } else {
+      setProducts([]);
+      setLoading(false);
+    }
+  }, [currentUser]);
 
   const fetchProducts = async () => {
+    setLoading(true);
     try {
-      const productsData = await getAllProducts();
-      setProducts(productsData);
-      setError(null);
+      const data = await fbGetAllProducts(currentUser?.uid);
+      setProducts(data);
+      setError('');
     } catch (err) {
-      setError(err.message);
+      console.error('Error fetching products:', err);
+      setError(err.message || 'Failed to fetch products');
     } finally {
       setLoading(false);
     }
@@ -32,49 +42,51 @@ const ProductProvider = ({ children }) => {
 
   const addProduct = async (productData) => {
     try {
-      const newProduct = await fbAddProduct(productData);
+      const productWithUser = {
+        ...productData,
+        userId: currentUser?.uid
+      };
+      const newProduct = await fbAddProduct(productWithUser);
       setProducts(prev => [...prev, newProduct]);
-      return newProduct;
     } catch (err) {
-      setError(err.message);
+      console.error('Error adding product:', err);
       throw err;
     }
   };
 
-  const updateProduct = async (productId, productData) => {
+  const updateProduct = async (id, productData) => {
     try {
-      const updatedProduct = await fbUpdateProduct(productId, productData);
-      setProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
-      return updatedProduct;
+      const updated = await fbUpdateProduct(id, productData);
+      setProducts(prev => prev.map(p => (p.id === id ? updated : p)));
     } catch (err) {
-      setError(err.message);
+      console.error('Error updating product:', err);
       throw err;
     }
   };
 
-  const deleteProduct = async (productId) => {
+  const deleteProduct = async (id) => {
     try {
-      await fbDeleteProduct(productId);
-      setProducts(prev => prev.filter(p => p.id !== productId));
+      await fbDeleteProduct(id);
+      setProducts(prev => prev.filter(p => p.id !== id));
     } catch (err) {
-      setError(err.message);
+      console.error('Error deleting product:', err);
       throw err;
     }
   };
 
   return (
-    <ProductContext.Provider value={{ 
-      products, 
-      loading, 
-      error, 
+    <ProductContext.Provider value={{
+      products,
+      loading,
+      error,
+      fetchProducts,
       addProduct,
       updateProduct,
-      deleteProduct,
-      refreshProducts: fetchProducts
+      deleteProduct
     }}>
       {children}
     </ProductContext.Provider>
   );
 };
 
-export default ProductProvider; // Default export
+export default ProductProvider;
